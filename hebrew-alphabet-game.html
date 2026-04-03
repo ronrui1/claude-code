@@ -208,30 +208,16 @@
 
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────
-// n = display name  |  say = what TTS speaks (avoids homograph confusion)
+// n = display name | TTS uses the raw letter (l) so Siri reads the letter name
 const AB = [
-  {l:'א',n:'אלף'},
-  {l:'ב',n:'בית'},
-  {l:'ג',n:'גימל'},
-  {l:'ד',n:'דלת'},
-  {l:'ה',n:'הא',   say:'הֵא'},          // short — nikud hint
-  {l:'ו',n:'וו',   say:'ואו'},           // "וו" looks like "uu"; "ואו" = vav
-  {l:'ז',n:'זין'},
-  {l:'ח',n:'חית'},
-  {l:'ט',n:'טית'},
-  {l:'י',n:'יוד'},
-  {l:'כ',n:'כף',   say:'כּף'},           // "כף" also means spoon
-  {l:'ל',n:'למד'},
-  {l:'מ',n:'מם'},
-  {l:'נ',n:'נון'},
-  {l:'ס',n:'סמך'},
-  {l:'ע',n:'עין'},
-  {l:'פ',n:'פה',   say:'פֵּא'},          // "פה" also means "here"
-  {l:'צ',n:'צדי'},
-  {l:'ק',n:'קוף'},
-  {l:'ר',n:'ריש'},
-  {l:'ש',n:'שין'},
-  {l:'ת',n:'תו',   say:'תָּו'},          // "תו" also means "note"
+  {l:'א',n:'אלף'},{l:'ב',n:'בית'},{l:'ג',n:'גימל'},
+  {l:'ד',n:'דלת'},{l:'ה',n:'הא'},{l:'ו',n:'וו'},
+  {l:'ז',n:'זין'},{l:'ח',n:'חית'},{l:'ט',n:'טית'},
+  {l:'י',n:'יוד'},{l:'כ',n:'כף'},{l:'ל',n:'למד'},
+  {l:'מ',n:'מם'},{l:'נ',n:'נון'},{l:'ס',n:'סמך'},
+  {l:'ע',n:'עין'},{l:'פ',n:'פה'},{l:'צ',n:'צדי'},
+  {l:'ק',n:'קוף'},{l:'ר',n:'ריש'},{l:'ש',n:'שין'},
+  {l:'ת',n:'תו'},
 ];
 
 const PICS = [
@@ -283,37 +269,44 @@ let answered=false, advTimer=null, currentAudio='';
 let recentL=[];
 
 // ── AUDIO ────────────────────────────────────────────────────────────────
+// iOS requires AudioContext to be created inside a user-gesture and reused
+let _ac = null;
+function getAC(){
+  if(!_ac) try{ _ac=new(window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  if(_ac && _ac.state==='suspended') _ac.resume();
+  return _ac;
+}
+// Prime the context on first touch/click so it's ready
+document.addEventListener('touchstart', getAC, {once:true, passive:true});
+document.addEventListener('click',      getAC, {once:true});
+
 function playSuccess(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [{f:523,t:0,d:.18},{f:659,t:.14,d:.18},{f:784,t:.28,d:.18},{f:1047,t:.42,d:.55}].forEach(({f,t,d})=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='sine';o.frequency.value=f;
-      const s=ctx.currentTime+t;
-      g.gain.setValueAtTime(0,s);
-      g.gain.linearRampToValueAtTime(.38,s+.02);
-      g.gain.setValueAtTime(.38,s+d-.06);
-      g.gain.linearRampToValueAtTime(0,s+d);
-      o.start(s);o.stop(s+d+.05);
-    });
-  }catch(e){}
+  const ctx=getAC(); if(!ctx) return;
+  [{f:523,t:0,d:.18},{f:659,t:.14,d:.18},{f:784,t:.28,d:.18},{f:1047,t:.42,d:.55}].forEach(({f,t,d})=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.value=f;
+    const s=ctx.currentTime+t;
+    g.gain.setValueAtTime(0,s);
+    g.gain.linearRampToValueAtTime(.38,s+.02);
+    g.gain.setValueAtTime(.38,s+d-.06);
+    g.gain.linearRampToValueAtTime(0,s+d);
+    o.start(s);o.stop(s+d+.05);
+  });
 }
 
 function playFailure(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [{f:311,t:0},{f:233,t:.22}].forEach(({f,t})=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='sawtooth';o.frequency.value=f;
-      const s=ctx.currentTime+t;
-      g.gain.setValueAtTime(0,s);
-      g.gain.linearRampToValueAtTime(.13,s+.02);
-      g.gain.linearRampToValueAtTime(0,s+.28);
-      o.start(s);o.stop(s+.3);
-    });
-  }catch(e){}
+  const ctx=getAC(); if(!ctx) return;
+  [{f:311,t:0},{f:233,t:.22}].forEach(({f,t})=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sawtooth';o.frequency.value=f;
+    const s=ctx.currentTime+t;
+    g.gain.setValueAtTime(0,s);
+    g.gain.linearRampToValueAtTime(.13,s+.02);
+    g.gain.linearRampToValueAtTime(0,s+.28);
+    o.start(s);o.stop(s+.3);
+  });
 }
 
 // ── TTS ───────────────────────────────────────────────────────────────────
@@ -377,7 +370,7 @@ function buildLetterRound(){
   if(recentL.length>10) recentL=recentL.slice(-10);
 
   const correct=rnd(chosen);
-  currentAudio='מצא את האות '+correct.l;
+  currentAudio='מְצָא את האות '+correct.l;
 
   const g=document.getElementById('lgrid');
   g.innerHTML='';
@@ -408,7 +401,7 @@ function buildPictureRound(){
   dl.textContent=target.l;
   dl.style.display='block';
 
-  currentAudio='מצא את התמונה שמתחילה באות '+target.l;
+  currentAudio='מְצָא את התמונה שמתחילה באות '+target.l;
 
   const g=document.getElementById('pgrid');
   g.innerHTML='';
