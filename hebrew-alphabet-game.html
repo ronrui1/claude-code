@@ -377,7 +377,7 @@ function buildLetterRound(){
   if(recentL.length>10) recentL=recentL.slice(-10);
 
   const correct=rnd(chosen);
-  currentAudio='מצא את האות '+(correct.say||correct.n);
+  currentAudio='מצא את האות '+correct.l;
 
   const g=document.getElementById('lgrid');
   g.innerHTML='';
@@ -408,7 +408,7 @@ function buildPictureRound(){
   dl.textContent=target.l;
   dl.style.display='block';
 
-  currentAudio='מצא את התמונה שמתחילה באות '+(target.say||target.n);
+  currentAudio='מצא את התמונה שמתחילה באות '+target.l;
 
   const g=document.getElementById('pgrid');
   g.innerHTML='';
