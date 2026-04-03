@@ -208,15 +208,30 @@
 
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────
+// n = display name  |  say = what TTS speaks (avoids homograph confusion)
 const AB = [
-  {l:'א',n:'אלף'},{l:'ב',n:'בית'},{l:'ג',n:'גימל'},
-  {l:'ד',n:'דלת'},{l:'ה',n:'הא'},{l:'ו',n:'וו'},
-  {l:'ז',n:'זין'},{l:'ח',n:'חית'},{l:'ט',n:'טית'},
-  {l:'י',n:'יוד'},{l:'כ',n:'כף'},{l:'ל',n:'למד'},
-  {l:'מ',n:'מם'},{l:'נ',n:'נון'},{l:'ס',n:'סמך'},
-  {l:'ע',n:'עין'},{l:'פ',n:'פה'},{l:'צ',n:'צדי'},
-  {l:'ק',n:'קוף'},{l:'ר',n:'ריש'},{l:'ש',n:'שין'},
-  {l:'ת',n:'תו'},
+  {l:'א',n:'אלף'},
+  {l:'ב',n:'בית'},
+  {l:'ג',n:'גימל'},
+  {l:'ד',n:'דלת'},
+  {l:'ה',n:'הא',   say:'הֵא'},          // short — nikud hint
+  {l:'ו',n:'וו',   say:'ואו'},           // "וו" looks like "uu"; "ואו" = vav
+  {l:'ז',n:'זין'},
+  {l:'ח',n:'חית'},
+  {l:'ט',n:'טית'},
+  {l:'י',n:'יוד'},
+  {l:'כ',n:'כף',   say:'כּף'},           // "כף" also means spoon
+  {l:'ל',n:'למד'},
+  {l:'מ',n:'מם'},
+  {l:'נ',n:'נון'},
+  {l:'ס',n:'סמך'},
+  {l:'ע',n:'עין'},
+  {l:'פ',n:'פה',   say:'פֵּא'},          // "פה" also means "here"
+  {l:'צ',n:'צדי'},
+  {l:'ק',n:'קוף'},
+  {l:'ר',n:'ריש'},
+  {l:'ש',n:'שין'},
+  {l:'ת',n:'תו',   say:'תָּו'},          // "תו" also means "note"
 ];
 
 const PICS = [
@@ -362,7 +377,7 @@ function buildLetterRound(){
   if(recentL.length>10) recentL=recentL.slice(-10);
 
   const correct=rnd(chosen);
-  currentAudio='מצא את האות '+correct.n;
+  currentAudio='מצא את האות '+(correct.say||correct.n);
 
   const g=document.getElementById('lgrid');
   g.innerHTML='';
@@ -393,7 +408,7 @@ function buildPictureRound(){
   dl.textContent=target.l;
   dl.style.display='block';
 
-  currentAudio='מצא את התמונה שמתחילה באות '+target.n;
+  currentAudio='מצא את התמונה שמתחילה באות '+(target.say||target.n);
 
   const g=document.getElementById('pgrid');
   g.innerHTML='';
