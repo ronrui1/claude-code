@@ -276,9 +276,15 @@ function getAC(){
   if(_ac && _ac.state==='suspended') _ac.resume();
   return _ac;
 }
-// Prime the context on first touch/click so it's ready
-document.addEventListener('touchstart', getAC, {once:true, passive:true});
-document.addEventListener('click',      getAC, {once:true});
+function warmAudio(){
+  const ctx = getAC(); if(!ctx) return;
+  // Play a 1-sample silent buffer — this fully unlocks iOS AudioContext
+  const buf = ctx.createBuffer(1,1,22050);
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.connect(ctx.destination); src.start(0);
+}
+document.addEventListener('touchstart', warmAudio, {once:true, passive:true});
+document.addEventListener('mousedown',  warmAudio, {once:true});
 
 function playSuccess(){
   const ctx=getAC(); if(!ctx) return;
@@ -370,7 +376,7 @@ function buildLetterRound(){
   if(recentL.length>10) recentL=recentL.slice(-10);
 
   const correct=rnd(chosen);
-  currentAudio='מְצָא את האות '+correct.l;
+  currentAudio='תמצא את האות '+correct.l;
 
   const g=document.getElementById('lgrid');
   g.innerHTML='';
@@ -401,7 +407,7 @@ function buildPictureRound(){
   dl.textContent=target.l;
   dl.style.display='block';
 
-  currentAudio='מְצָא את התמונה שמתחילה באות '+target.l;
+  currentAudio='תמצא את התמונה שמתחילה באות '+target.l;
 
   const g=document.getElementById('pgrid');
   g.innerHTML='';
