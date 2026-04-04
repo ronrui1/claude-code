@@ -268,52 +268,7 @@ let score=0, qnum=1, diff=3, mode='letter';
 let answered=false, advTimer=null, currentAudio='';
 let recentL=[];
 
-// ── AUDIO ────────────────────────────────────────────────────────────────
-// iOS requires AudioContext to be created inside a user-gesture and reused
-let _ac = null;
-function getAC(){
-  if(!_ac) try{ _ac=new(window.AudioContext||window.webkitAudioContext)(); }catch(e){}
-  if(_ac && _ac.state==='suspended') _ac.resume();
-  return _ac;
-}
-function warmAudio(){
-  const ctx = getAC(); if(!ctx) return;
-  // Play a 1-sample silent buffer — this fully unlocks iOS AudioContext
-  const buf = ctx.createBuffer(1,1,22050);
-  const src = ctx.createBufferSource();
-  src.buffer = buf; src.connect(ctx.destination); src.start(0);
-}
-document.addEventListener('touchstart', warmAudio, {once:true, passive:true});
-document.addEventListener('mousedown',  warmAudio, {once:true});
-
-function playSuccess(){
-  const ctx=getAC(); if(!ctx) return;
-  [{f:523,t:0,d:.18},{f:659,t:.14,d:.18},{f:784,t:.28,d:.18},{f:1047,t:.42,d:.55}].forEach(({f,t,d})=>{
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);
-    o.type='sine';o.frequency.value=f;
-    const s=ctx.currentTime+t;
-    g.gain.setValueAtTime(0,s);
-    g.gain.linearRampToValueAtTime(.38,s+.02);
-    g.gain.setValueAtTime(.38,s+d-.06);
-    g.gain.linearRampToValueAtTime(0,s+d);
-    o.start(s);o.stop(s+d+.05);
-  });
-}
-
-function playFailure(){
-  const ctx=getAC(); if(!ctx) return;
-  [{f:311,t:0},{f:233,t:.22}].forEach(({f,t})=>{
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);
-    o.type='sawtooth';o.frequency.value=f;
-    const s=ctx.currentTime+t;
-    g.gain.setValueAtTime(0,s);
-    g.gain.linearRampToValueAtTime(.13,s+.02);
-    g.gain.linearRampToValueAtTime(0,s+.28);
-    o.start(s);o.stop(s+.3);
-  });
-}
+// ── AUDIO — TTS only (Web Audio removed; Siri is the sound engine) ───────
 
 // ── TTS ───────────────────────────────────────────────────────────────────
 function speak(txt){
@@ -376,7 +331,7 @@ function buildLetterRound(){
   if(recentL.length>10) recentL=recentL.slice(-10);
 
   const correct=rnd(chosen);
-  currentAudio='תמצא את האות '+correct.l;
+  currentAudio='תמצאי את האות '+correct.l;
 
   const g=document.getElementById('lgrid');
   g.innerHTML='';
@@ -384,7 +339,7 @@ function buildLetterRound(){
     const c=document.createElement('div');
     c.className='lcard';
     c.textContent=item.l;
-    c.addEventListener('click',()=>pick(c,item.l===correct.l,'lgrid'));
+    c.addEventListener('click',()=>pick(c,item.l===correct.l,'lgrid',item.l));
     g.appendChild(c);
   });
 }
@@ -407,7 +362,7 @@ function buildPictureRound(){
   dl.textContent=target.l;
   dl.style.display='block';
 
-  currentAudio='תמצא את התמונה שמתחילה באות '+target.l;
+  currentAudio='תמצאי את התמונה שמתחילה באות '+target.l;
 
   const g=document.getElementById('pgrid');
   g.innerHTML='';
@@ -415,7 +370,7 @@ function buildPictureRound(){
     const c=document.createElement('div');
     c.className='pcard';
     c.innerHTML=`<div class="pic-img">${item.e}</div><div class="pic-word">${item.w}</div>`;
-    c.addEventListener('click',()=>pick(c,item===correct,'pgrid'));
+    c.addEventListener('click',()=>pick(c,item===correct,'pgrid',item.w));
     g.appendChild(c);
   });
 }
@@ -424,8 +379,11 @@ function buildPictureRound(){
 const PRAISE=['כל הכבוד! 🎉','נהדר! ⭐','מצוין! 🌟','אחלה! 🎈','ברכות! 💫','וואו! 🔥'];
 const COMFORT=['לא זו — נסה שוב 💙','כמעט! 🌈','אוף! נסה עוד פעם 🙈'];
 
-function pick(card,isCorrect,gridId){
+function pick(card,isCorrect,gridId,spokenText){
   if(answered||card.classList.contains('elim')||card.classList.contains('off')) return;
+
+  // Say the letter or word that was tapped
+  speak(spokenText);
 
   if(isCorrect){
     answered=true;
@@ -433,11 +391,9 @@ function pick(card,isCorrect,gridId){
     document.querySelectorAll(`#${gridId} > div`).forEach(c=>c.classList.add('off'));
     score++;
     fb(rnd(PRAISE),'fb-ok');
-    playSuccess();
     launchConfetti();
     advTimer=setTimeout(advanceRound,2000);
   } else {
-    playFailure();
     card.classList.add('miss');
     setTimeout(()=>{
       card.classList.remove('miss');
